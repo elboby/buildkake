@@ -1,0 +1,31 @@
+Buildkake
+---
+
+h1. Introduction
+Buildkake is a simple build tool for PHP projects. It is like a very very very simplistic wannabe of Ant for Java, Rebar for Erlang or Leiningen for Clojure.
+The idea is to handle versions, dependencies and simple builds. Our projects use more and more plugins, libraries maintained independently; so this maintenance task is critical. 
+One problem to solve was to have a better strategy than "git submodule" to deal with dependencies.
+
+h2. Usage
+Very simple, you just need a configuration file in the root of your project and launch buildkake like this:
+$ cd my_project
+$ buildkake build.config.php
+...
+
+It will:
+* download the different libraries and components according to the config file and put them in the current location.
+* if already downloaded, it will check if updates are needed and download them.
+* check dependencies according to config file (very simple).
+* execute user specific scripts before and after building (like email, growl, symfony pake tasks...).
+* handle ignore files for your versioning. 
+
+h2. Configuration
+
+
+
+h2. User configuration
+
+
+h2. Todos
+* Add more adapter (tgz file over internet, mercurial repo, pear, symfony plugins...).
+* check PHP extension/library (pecl, pear) are presents.

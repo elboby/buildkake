@@ -1,0 +1,60 @@
+#!/usr/bin/php -q
+<?php
+include(__DIR__."/lib/include.php");
+
+//parse params
+$args = parseParameters(array());
+if(isset($args[0]) && $args[0]==$_SERVER['PHP_SELF']) unset($args[0]);
+
+//test if file option is there
+if(!isset($args[1])) errorMessage("missing configuration file path");
+$file = $args[1];
+
+//test if file is readable
+if(!is_readable($file)) errorMessage("file path not readable: $file");
+$project_path = dirname(realpath($file));
+
+//include the configuration
+include($file);
+
+//going through the dependencies and call right adapter
+if(!isset($config["deps"])) errorMessage("missing dependencies definition in configuration (key 'deps')");
+foreach($config["deps"] as $key=>$group)
+{
+  echo "Building the group: $key...\n";
+  
+  //building the path
+  if(!isset($group["path"])) errorMessage("missing path definition in configuration for $key (key 'path')");
+  $group_path = $project_path."/".$group["path"];
+  system("mkdir -p ".$group_path);
+  
+  //retrieving data for those inside
+  if(!isset($group["items"])) errorMessage("missing items definition in configuration for $key (key 'items')");
+  foreach($group["items"] as $i=>$item)
+  {
+    if(!isset($item["type"])) errorMessage("missing type definition in configuration for $key/$i (key 'type')");
+    $adapter = AdapterFactory::getInstanceFor($item["type"], $item['name'], $group_path, $item);
+    $adapter->init();
+    
+    //TODO add path to ignore file for git/svn
+    $ignorefile = $project_path."/".".gitignore";
+    $path = "/".$group["path"]."/".$item['name']."/*";
+    system("echo \"$path\" >> $ignorefile");
+  
+    //check for updates
+    
+    //download updates
+    $adapter->process();
+    
+    //var_dump($item);
+  }
+}
+
+//call the post build command
+if(isset($config['build-command']) && $config['build-command']!="")
+{
+  $cmd = "cd $project_path; ";
+  $cmd .= $config['build-command'];
+  
+  system($cmd);
+}
