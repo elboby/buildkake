@@ -34,9 +34,24 @@ abstract class Adapter
     echo "$text\n";
   }
   
+  public function checkIfPresent()
+  {
+    return file_exists($this->path."/".$this->name);
+  }
+  
+  
+  public function cleanUp()
+  {
+    $cmd = 'rm -rf '.$this->path."/".$this->name;
+    $output = system($cmd, $return);
+    // var_dump($output);
+    //     var_dump($return);
+    //     echo "-----\n";
+  }
+  
   abstract protected function getRequiredParams();
   abstract public function download();
-  abstract public function check();
   abstract public function update();
-  
+  abstract public function checkConfigChanged();
+  abstract public function checkUpdateNeeded();
 }

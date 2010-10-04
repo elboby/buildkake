@@ -18,7 +18,7 @@ class SvnAdapter extends Adapter
     system($cmd);
   }
   
-  
-  public function check(){}
   public function update(){}
+  public function checkConfigChanged(){}
+  public function checkUpdateNeeded(){}
 }
