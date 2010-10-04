@@ -7,7 +7,7 @@ class SvnAdapter extends Adapter
     return array("url", "branch");
   }
   
-  public function process()
+  public function download()
   {
     $url = $this->params['url'].'/'.$this->params['branch'];
     
@@ -17,4 +17,8 @@ class SvnAdapter extends Adapter
     $this->log($cmd);
     system($cmd);
   }
+  
+  
+  public function check(){}
+  public function update(){}
 }

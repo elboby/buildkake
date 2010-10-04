@@ -35,5 +35,8 @@ abstract class Adapter
   }
   
   abstract protected function getRequiredParams();
-  abstract public function process();
+  abstract public function download();
+  abstract public function check();
+  abstract public function update();
+  
 }
