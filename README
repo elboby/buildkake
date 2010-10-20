@@ -29,3 +29,4 @@ h2. User configuration
 h2. Todos
 * Add more adapter (tgz file over internet, mercurial repo, pear, symfony plugins...).
 * check PHP extension/library (pecl, pear) are presents.
+* Tested only on OSX with PHP5.3.

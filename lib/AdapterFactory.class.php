@@ -10,6 +10,6 @@ class AdapterFactory
   {
     if($type=="svn")     return new SvnAdapter($name, $path, $params);
     elseif($type=="git") return new GitAdapter($name, $path, $params);
-    else throw new Exception("no adapter found for $type");
+    else throw new Exception("AdapterFactory: no adapter found for $type");
   }
 }
