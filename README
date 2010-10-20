@@ -1,6 +1,8 @@
 Buildkake
 ---
 
+*** CAUTION: HIGHLY EXPERIMENTAL ***
+
 h1. Introduction
 Buildkake is a simple build tool for PHP projects. It is like a very very very simplistic wannabe of Ant for Java, Rebar for Erlang or Leiningen for Clojure.
 The idea is to handle versions, dependencies and simple builds. Our projects use more and more plugins, libraries maintained independently; so this maintenance task is critical. 
@@ -20,7 +22,42 @@ It will:
 * handle ignore files for your versioning. 
 
 h2. Configuration
+The configuration (for the moment) is a simple php file with an array. It looks like this:
+<?php
+$config = array(
+  "name" => "test",
+  "description" => "test project symfony",
+  "version" => "0.1",
+  "deps" => array(
+    "plugins" => array(
+      "path" => "plugins",
+      "items" => array(
+        array("type" => "git", "name" => "asOauthPlugin", "url" => "git@github.com:elboby/asOauthPlugin.git", "branch" => "master")
+      )
+    ),
+    "vendor" => array(
+      "path" => "lib/vendor",
+      "items" => array(
+        array("type" => "svn", "name" => "symfony", "url" => "http://svn.symfony-project.com", "branch" => "tags/RELEASE_1_4_6")
+      )
+    )
+  ),
+	"build-command" => "php lib/vendor/symfony/data/bin/symfony generate:project test;"
+);
 
+A brief description of the keys:
+- "name": Name of the project.
+- "description": Description of the project.
+- "version": Version of the current project. Used later for dependency checking among Buildkake-built projects.
+- "deps": List the folders where the libraries and components should be stored.
+- "plugins" and "vendor": Just some identifiers for the folders. It could be anything according to your need.
+- "path": Actual path of the folder which will hold the dependencies.
+- "items": List of dependencies to stored in this specific folder.
+- "build-command": Command to be executed at the end of the build.
+
+In our example, the tool will create 2 folders at the root of the project: 'plugins' and 'lib/vendor'.
+It will then clone the plugin asOauthPlugin and export the release 1.4.6 of Symfony. 
+Finally it will launch the generate:project task to finalize the project by creating the folder structure according to Symfony.
 
 
 h2. User configuration
@@ -30,3 +67,5 @@ h2. Todos
 * Add more adapter (tgz file over internet, mercurial repo, pear, symfony plugins...).
 * check PHP extension/library (pecl, pear) are presents.
 * Tested only on OSX with PHP5.3.
+* Add unit tests via PHPunit.
+* Add YAML format support for config file.
