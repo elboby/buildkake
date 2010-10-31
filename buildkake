@@ -26,12 +26,13 @@ catch(Exception $e)
   errorMessage($e->getMessage());
 }
 
-
+var_dump($config);
 //call the post build command
 if(isset($config['build-command']) && $config['build-command']!="")
 {
   $cmd = "cd $project_path; ";
   $cmd .= $config['build-command'];
   
+  echo $cmd."\n";
   system($cmd);
 }
