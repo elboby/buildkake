@@ -1,4 +1,5 @@
 /test_project/*
 /test_project
+/test/field
 /test/field/*
 /lib/vendor/yaml/*
