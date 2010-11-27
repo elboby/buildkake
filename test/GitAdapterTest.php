@@ -14,6 +14,12 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
     return system($cmd."", $return_var);
   }
 
+  protected static function _system_cd($location, $cmd, &$return_var=0)
+  {
+    //echo "$cmd\n";
+    return self::_system('cd '.$location.' && '.$cmd."", $return_var);
+  }
+
   public static function setUpBeforeClass()
   {
     self::$rootpath = dirname(__FILE__).'/field';
@@ -25,22 +31,13 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
     self::_system('mkdir -p '.self::$rootpath.'/repo/test.git');
     self::_system('git init '.self::$rootpath.'/repo/test.git');
     self::_system('echo 1 > '.self::$rootpath.'/repo/test.git/a');
-    self::_system('git add '.self::$rootpath.'/repo/test.git/a');
-    self::_system('git commit -m "initial commit" '.self::$rootpath.'/repo/test.git/');
-    
-    self::_system('svn co file://'.self::$rootpath.'/repo/test '.self::$rootpath.'/test');
-    self::_system('svn mkdir '.self::$rootpath.'/test/trunk');
-    self::_system('svn mkdir '.self::$rootpath.'/test/branches');
-    self::_system('svn commit -m "adding folders" '.self::$rootpath.'/test/*');
-    self::_system('echo "1" >> '.self::$rootpath.'/test/trunk/a');
-    self::_system('svn add '.self::$rootpath.'/test/trunk/a');
-    self::_system('svn commit -m "initial commit for trunk" '.self::$rootpath.'/test/trunk/a');
-    self::_system('rm -rf '.self::$rootpath.'/test');
-    self::_system('svn copy file://'.self::$rootpath.'/repo/test/trunk file://'.self::$rootpath.'/repo/test/branches/number2 -m "create new branch"');
-    self::_system('svn co file://'.self::$rootpath.'/repo/test/branches/number2 '.self::$rootpath.'/number2');
-    self::_system('echo "2" > '.self::$rootpath.'/number2/a');
-    self::_system('svn commit -m "change in branch" '.self::$rootpath.'/number2/a');
-    self::_system('rm -rf '.self::$rootpath.'/number2');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git add .');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git commit -m "initial commit"');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git checkout -b number2');
+    self::_system('echo 2 > '.self::$rootpath.'/repo/test.git/a');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git add .');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git commit -m "initial commit"');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git checkout master');
   }
   
   protected function setUp()
@@ -61,105 +58,111 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
   }
     
   public function testDownload()
+   {
+     //prepare
+     $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'));
+     $c->init();
+     $c->download();
+     
+     //check if data is correct
+     $output = file_get_contents(self::$rootpath.'/lib/test/a');
+     $this->assertEquals(1, (integer)$output);
+   }
+  
+   public function testDownloadFromAnotherBranch()
+   {
+     //prepare
+     $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'));
+     $c->init();
+     $c->download();
+    
+     //check if data is correct
+     $output = file_get_contents(self::$rootpath.'/lib/test/a');
+     $this->assertEquals(2, (integer)$output);
+   }
+  
+  public function testIgnoreWhenConfigurationIsNotChanged()
+  {
+    //prepare
+    self::_system('git clone file://'.self::$rootpath.'/repo/test.git '.self::$rootpath.'/lib/test');
+    self::_system_cd(self::$rootpath.'/lib/test', 'git branch -t number2 origin/number2');
+    self::_system_cd(self::$rootpath.'/lib/test', 'git checkout number2');
+    
+    //leave the configuration
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'));
+    $c->init();
+
+    //test
+    $this->assertEquals(false, $c->checkConfigChanged());
+  }
+
+  public function testDetectWhenConfigurationChanged()
+  {
+    //prepare
+    self::_system('git clone file://'.self::$rootpath.'/repo/test.git '.self::$rootpath.'/lib/test');
+    
+    //change the configuration
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'));
+    $c->init();
+
+    //test
+    $this->assertEquals(true, $c->checkConfigChanged());
+  }
+  
+  public function testDetectConfigurationChangesWhenTheFolderIsGone()
+  {
+    //prepare
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'));
+    $c->init();
+    
+    //test
+    $this->assertEquals(true, $c->checkConfigChanged());
+  }
+  
+  public function testIgnoreIfUpdateNeededWhenNoChanges()
+  {
+    //run first test
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'));
+    $c->init();
+    $c->download();
+    
+    //test
+    $this->assertEquals(false, $c->checkUpdateNeeded());
+  }
+  
+  public function testDetectUpdateIsNeededWhenRepositoryHasNewCommit()
   {
     //prepare
     $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'));
     $c->init();
     $c->download();
     
-    //check if data is correct
-    $output = file_get_contents(self::$rootpath.'/lib/test/a');
-    $this->assertEquals(1, (integer)$output);
+    //commit some changes in the repository
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git checkout master');
+    self::_system('echo 1 >> '.self::$rootpath.'/repo/test.git/a');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git add .');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git commit -m "another change"');
+    
+    //test
+    $this->assertEquals(true, $c->checkUpdateNeeded());    
   }
-
-  // public function testDownloadFromAnotherBranch()
-  // {
-  //   //prepare
-  //   $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'));
-  //   $c->init();
-  //   $c->download();
-  //  
-  //   //check if data is correct
-  //   $output = file_get_contents(self::$rootpath.'/lib/test/a');
-  //   $this->assertEquals(2, (integer)$output);
-  // }
-  // 
-  // public function testIgnoreWhenConfigurationIsNotChanged()
-  // {
-  //   //prepare
-  //   self::_system('svn co file://'.self::$rootpath.'/repo/test/branches/number2 '.self::$rootpath.'/lib/test');
-  //   //leave the configuration
-  //   $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'));
-  //   $c->init();
-  //   
-  //   //test
-  //   $this->assertEquals(false, $c->checkConfigChanged());
-  // }
-  // 
-  // public function testDetectWhenConfigurationChanged()
-  // {
-  //   //prepare
-  //   self::_system('svn co file://'.self::$rootpath.'/repo/test/trunk '.self::$rootpath.'/lib/test');
-  //   //change the configuration
-  //   $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'));
-  //   $c->init();
-  //   
-  //   //test
-  //   $this->assertEquals(true, $c->checkConfigChanged());
-  // }
-  // 
-  // public function testDetectConfigurationChangesWhenTheFolderIsGone()
-  // {
-  //   //prepare
-  //   $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'));
-  //   $c->init();
-  //   
-  //   //test
-  //   $this->assertEquals(true, $c->checkConfigChanged());
-  // }
-  // 
-  // public function testIgnoreIfUpdateNeededWhenNoChanges()
-  // {
-  //   //run first test
-  //   $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'));
-  //   $c->init();
-  //   $c->download();
-  //   
-  //   //test
-  //   $this->assertEquals(false, $c->checkUpdateNeeded());
-  // }
-  // 
-  // public function testDetectUpdateIsNeededWhenRepositoryHasNewCommit()
-  // {
-  //   //prepare
-  //   $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'));
-  //   $c->init();
-  //   $c->download();
-  //   //commit some changes in the repository
-  //   self::_system('svn co file://'.self::$rootpath.'/repo/test/trunk '.self::$rootpath.'/trunktest');
-  //   self::_system('echo "1" >> '.self::$rootpath.'/trunktest/a');
-  //   self::_system('svn commit -m "another change" '.self::$rootpath.'/trunktest/a');
-  //   self::_system('rm -rf '.self::$rootpath.'/trunktest');
-  //   
-  //   //test
-  //   $this->assertEquals(true, $c->checkUpdateNeeded());    
-  // }
-  // 
-  // public function testNoUpdateNeededAfterUpdateDone()
-  // {
-  //   //prepare
-  //   $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'));
-  //   $c->init();
-  //   $c->download();
-  //   //commit some changes in the repository
-  //   self::_system('svn co file://'.self::$rootpath.'/repo/test/trunk '.self::$rootpath.'/trunktest');
-  //   self::_system('echo "1" >> '.self::$rootpath.'/trunktest/a');
-  //   self::_system('svn commit -m "another change" '.self::$rootpath.'/trunktest/a');
-  //   self::_system('rm -rf '.self::$rootpath.'/trunktest');
-  //   //call the update
-  //   $c->update();
-  //   
-  //   //test
-  //   $this->assertEquals(false, $c->checkUpdateNeeded()); 
-  // }
+  
+  public function testNoUpdateNeededAfterUpdateDone()
+  {
+    //prepare
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'));
+    $c->init();
+    $c->download();
+    
+    //commit some changes in the repository
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git checkout master');
+    self::_system('echo 1 >> '.self::$rootpath.'/repo/test.git/a');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git add .');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git commit -m "another change again"');
+    //call the update
+    $c->update();
+    
+    //test
+    $this->assertEquals(false, $c->checkUpdateNeeded()); 
+  }
 }
