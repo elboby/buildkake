@@ -12,7 +12,11 @@ try
   if(!isset($args[1])) throw new Exception("missing configuration file path");
   $file = $args[1];
 
-  //load configuration
+  //load buildkake config from default/custom
+  $uConfig = new AppConfig(__DIR__.'/../config/buildkake.ini', null);
+  $uConfig->init();
+
+  //load builder configuration
   $bConfig = new BuildkakeConfig($file);
   $bConfig->init();
 
