@@ -13,7 +13,9 @@ try
   $file = $args[1];
 
   //load buildkake config from default/custom
-  $uConfig = new AppConfig(__DIR__.'/../config/buildkake.ini', null);
+  $dFile = __DIR__.'/config/buildkake.ini';
+  $uFile = '~/buildkake.ini';
+  $uConfig = new AppConfig($dFile, $uFile);
   $uConfig->init();
 
   //load builder configuration
