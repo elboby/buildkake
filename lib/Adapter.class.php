@@ -41,8 +41,7 @@ abstract class Adapter
   
   public function cleanUp()
   {
-    $cmd = 'rm -rf '.$this->path."/".$this->name;
-    $output = system($cmd, $return);
+    self::_system('rm -rf '.$this->path."/".$this->name);
   }
   
   abstract protected function getRequiredParams();

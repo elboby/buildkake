@@ -1,12 +1,13 @@
 <?php
 
-include('../lib/Adapter.class.php');
-include('../lib/adapters/SvnAdapter.class.php');
+include(dirname(__FILE__).'/includeTest.php');
+include(dirname(__FILE__).'/../lib/Adapter.class.php');
+include(dirname(__FILE__).'/../lib/adapters/SvnAdapter.class.php');
 
 
 class SvnAdapterTest extends PHPUnit_Framework_TestCase
 {
-  protected static $rootpath;
+  protected static $rootpath, $logger;
 
   protected static function _system($cmd, &$return_var=0)
   {
@@ -37,6 +38,9 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
     self::_system('echo "2" > '.self::$rootpath.'/number2/a');
     self::_system('svn commit -m "change in branch" '.self::$rootpath.'/number2/a');
     self::_system('rm -rf '.self::$rootpath.'/number2');
+    
+    //mock logger
+    self::$logger = new Logger();
   }
   
   protected function setUp()
@@ -59,7 +63,7 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
   public function testDownload()
   {
     //prepare
-    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'));
+    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'), self::$logger);
     $c->init();
     $c->download();
     
@@ -71,7 +75,7 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
   public function testDownloadFromAnotherBranch()
   {
     //prepare
-    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'));
+    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'), self::$logger);
     $c->init();
     $c->download();
    
@@ -85,7 +89,7 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
     //prepare
     self::_system('svn co file://'.self::$rootpath.'/repo/test/branches/number2 '.self::$rootpath.'/lib/test');
     //leave the configuration
-    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'));
+    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'), self::$logger);
     $c->init();
     
     //test
@@ -97,7 +101,7 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
     //prepare
     self::_system('svn co file://'.self::$rootpath.'/repo/test/trunk '.self::$rootpath.'/lib/test');
     //change the configuration
-    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'));
+    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'), self::$logger);
     $c->init();
     
     //test
@@ -107,7 +111,7 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
   public function testDetectConfigurationChangesWhenTheFolderIsGone()
   {
     //prepare
-    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'));
+    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'branches/number2'), self::$logger);
     $c->init();
     
     //test
@@ -117,7 +121,7 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
   public function testIgnoreIfUpdateNeededWhenNoChanges()
   {
     //run first test
-    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'));
+    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'), self::$logger);
     $c->init();
     $c->download();
     
@@ -128,7 +132,7 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
   public function testDetectUpdateIsNeededWhenRepositoryHasNewCommit()
   {
     //prepare
-    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'));
+    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'), self::$logger);
     $c->init();
     $c->download();
     //commit some changes in the repository
@@ -144,7 +148,7 @@ class SvnAdapterTest extends PHPUnit_Framework_TestCase
   public function testNoUpdateNeededAfterUpdateDone()
   {
     //prepare
-    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'));
+    $c = new SvnAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test', 'branch'=>'trunk'), self::$logger);
     $c->init();
     $c->download();
     //commit some changes in the repository

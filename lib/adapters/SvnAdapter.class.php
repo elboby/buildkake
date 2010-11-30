@@ -20,12 +20,7 @@ class SvnAdapter extends Adapter
   public function download()
   {
     $url = $this->params['url'].'/'.$this->params['branch'];
-    
-    $cmd = '';
-    $cmd .= 'svn checkout '.$url.' '.$this->path.'/'.$this->name.';';
-    
-    $this->log($cmd);
-    system($cmd);
+    self::_system('svn checkout '.$url.' '.$this->path.'/'.$this->name);
   }
   
   public function checkConfigChanged()
@@ -39,7 +34,7 @@ class SvnAdapter extends Adapter
     //url from config
     $url_config = $this->params['url'].'/'.$this->params['branch'];
     //url from file
-    $out = system('svn info '.$this->path.'/'.$this->name.' | grep "URL"');
+    $out = self::_system('svn info '.$this->path.'/'.$this->name.' | grep "URL"');
     $url_file = substr($out, 5);
     if($url_file != $url_config)
     { 
@@ -52,8 +47,8 @@ class SvnAdapter extends Adapter
   
   public function checkUpdateNeeded()
   {
-    $rev_head = system('svn info -r HEAD '.$this->params['url'].'/'.$this->params['branch'].' | grep -i "Last Changed Rev"');
-    $rev_wc = system('svn info '.$this->path.'/'.$this->name.' | grep -i "Last Changed Rev"');
+    $rev_head = self::_system('svn info -r HEAD '.$this->params['url'].'/'.$this->params['branch'].' | grep -i "Last Changed Rev"');
+    $rev_wc = self::_system('svn info '.$this->path.'/'.$this->name.' | grep -i "Last Changed Rev"');
     
     if($rev_head != $rev_wc)
     {
@@ -65,6 +60,6 @@ class SvnAdapter extends Adapter
   
   public function update()
   {
-    system('svn update '.$this->path.'/'.$this->name);
+    self::_system('svn update '.$this->path.'/'.$this->name);
   }
 }
