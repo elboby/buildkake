@@ -1,6 +1,6 @@
 <?php
 
-class BuildkakeCore
+class BuilderCore
 {
   protected $deps, $project_path;
   

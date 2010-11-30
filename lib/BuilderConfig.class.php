@@ -1,6 +1,6 @@
 <?php
 
-class BuildkakeConfig
+class BuilderConfig
 {
   protected $file;
   protected $project_path, $config;

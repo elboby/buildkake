@@ -10,35 +10,28 @@ try
 
   //test if file option is there
   if(!isset($args[1])) throw new Exception("missing configuration file path");
-  $file = $args[1];
+  $build_file = $args[1];
 
-  //load buildkake config from default/custom
-  $dFile = __DIR__.'/config/buildkake.ini';
-  $uFile = '~/buildkake.ini';
-  $uConfig = new AppConfig($dFile, $uFile);
-  $uConfig->init();
+  //load buildkake settings from default/custom
+  $default_file = __DIR__.'/config/buildkake.ini';
+  $user_file = '~/buildkake.ini';
+  $buildkake_config = new AppConfig($default_file, $user_file);
+  $buildkake_config->init();
+
+  //create logger instance
+  $logger = new Logger($buildkake_config->getArrayFor('Log'));
+  $logger->init();
 
   //load builder configuration
-  $bConfig = new BuildkakeConfig($file);
-  $bConfig->init();
+  $build_config = new BuilderConfig($build_file);
+  $build_config->init();
 
   //process configuration
-  $bCore = new BuildkakeCore($bConfig->getProjectPath(), $bConfig->getDeps());
-  $bCore->init();
-  $bCore->process();
+  $builder_core = new BuilderCore($build_config->getProjectPath(), $build_config->getDeps());
+  $builder_core->init();
+  $builder_core->process();
 }
 catch(Exception $e)
 {
   errorMessage($e->getMessage());
-}
-
-var_dump($config);
-//call the post build command
-if(isset($config['build-command']) && $config['build-command']!="")
-{
-  $cmd = "cd $project_path; ";
-  $cmd .= $config['build-command'];
-  
-  echo $cmd."\n";
-  system($cmd);
 }
