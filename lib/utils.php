@@ -41,3 +41,26 @@ function parseParameters($noopt = array())
   }
   return $result;
 }
+
+function is__writable($path)
+{
+
+   if ($path{strlen($path)-1}=='/') //Start function again with tmp file...
+     
+       return is__writable($path.uniqid(mt_rand()).'.tmp');
+ 
+   elseif (ereg('.tmp', $path))
+   { //Check tmp file for read/write capabilities
+     
+       if (!($f = @fopen($path, 'w+')))
+           return false;
+       fclose($f);
+       unlink($path);
+       return true;
+
+   }
+   else //We have a path error.
+     
+       return 0; // Or return error - invalid path...
+
+}

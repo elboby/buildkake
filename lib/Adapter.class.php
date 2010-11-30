@@ -2,13 +2,18 @@
 
 abstract class Adapter
 {
-  protected $name, $path, $params;
+  protected 
+    $name, 
+    $path, 
+    $params,
+    $logger;
   
-  public function __construct($name, $path, $params)
+  public function __construct($name, $path, $params, $logger)
   {
     $this->name = $name;
     $this->path = $path;
     $this->params = $params;
+    $this->logger = $logger;
   }
   
   public function init()
@@ -29,24 +34,15 @@ abstract class Adapter
     }
   }
   
-  protected function log($text)
-  {
-    echo "$text\n";
-  }
-  
   public function checkIfPresent()
   {
     return file_exists($this->path."/".$this->name);
   }
   
-  
   public function cleanUp()
   {
     $cmd = 'rm -rf '.$this->path."/".$this->name;
     $output = system($cmd, $return);
-    // var_dump($output);
-    //     var_dump($return);
-    //     echo "-----\n";
   }
   
   abstract protected function getRequiredParams();
@@ -54,4 +50,14 @@ abstract class Adapter
   abstract public function update();
   abstract public function checkConfigChanged();
   abstract public function checkUpdateNeeded();
+     
+  protected static function _system($cmd, &$return_var=0)
+  {
+    return system($cmd."", $return_var);
+  }
+
+  protected static function _system_cd($location, $cmd, &$return_var=0)
+  {
+    return self::_system('cd '.$location.' && '.$cmd."", $return_var);
+  }
 }

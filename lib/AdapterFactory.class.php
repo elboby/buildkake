@@ -6,10 +6,21 @@ include(__DIR__.'/adapters/GitAdapter.class.php');
 
 class AdapterFactory
 {
-  public static function getInstanceFor($type, $name, $path, $params)
+  public static function getInstanceFor($type, $name, $path, $params, $logger)
   {
-    if($type=="svn")     return new SvnAdapter($name, $path, $params);
-    elseif($type=="git") return new GitAdapter($name, $path, $params);
-    else throw new Exception("AdapterFactory: no adapter found for $type");
+    if($type=="svn")
+    {
+      $logger->info('AdapterFactory: creating instance of SvnAdapter for '.$name);
+      return new SvnAdapter($name, $path, $params, $logger);
+    }
+    elseif($type=="git")
+    {
+      $logger->info('AdapterFactory: creating instance of GitAdapter for '.$name);
+      return new GitAdapter($name, $path, $params, $logger);
+    }
+    else
+    {
+      throw new Exception("AdapterFactory: no adapter found for $type");
+    }
   }
 }

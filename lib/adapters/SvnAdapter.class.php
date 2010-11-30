@@ -4,9 +4,9 @@ class SvnAdapter extends Adapter
 {
   protected $url, $branch;
   
-  public function __construct($name, $path, $params)
+  public function __construct($name, $path, $params, $logger)
   {
-    parent::__construct($name, $path, $params);
+    parent::__construct($name, $path, $params, $logger);
       
     if(isset($this->params['url']))     $this->url = $this->params['url'];
     if(isset($this->params['branch']))  $this->branch = $this->params['branch'];

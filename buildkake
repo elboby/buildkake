@@ -1,4 +1,4 @@
-#!/usr/bin/php -q
+#!/usr/bin/php5 -q
 <?php
 include(__DIR__."/lib/include.php");
 
@@ -23,15 +23,16 @@ try
   $logger->init();
 
   //load builder configuration
-  $build_config = new BuilderConfig($build_file);
+  $build_config = new BuilderConfig($build_file, $logger);
   $build_config->init();
 
   //process configuration
-  $builder_core = new BuilderCore($build_config->getProjectPath(), $build_config->getDeps());
+  $builder_core = new BuilderCore($build_config->getProjectPath(), $build_config->getDeps(), $logger);
   $builder_core->init();
   $builder_core->process();
 }
 catch(Exception $e)
 {
+  $logger->error($e->getMessage());
   errorMessage($e->getMessage());
 }

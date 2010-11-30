@@ -1,27 +1,26 @@
 <?php
 
-include('../lib/Adapter.class.php');
-include('../lib/adapters/GitAdapter.class.php');
+include(dirname(__FILE__).'/includeTest.php');
+include(dirname(__FILE__).'/../lib/Adapter.class.php');
+include(dirname(__FILE__).'/../lib/adapters/GitAdapter.class.php');
 
 
 class GitAdapterTest extends PHPUnit_Framework_TestCase
 {
-  protected static $rootpath;
+  protected static $rootpath, $logger;
 
   protected static function _system($cmd, &$return_var=0)
   {
-    //echo "$cmd\n";
     return system($cmd."", $return_var);
   }
 
   protected static function _system_cd($location, $cmd, &$return_var=0)
   {
-    //echo "$cmd\n";
     return self::_system('cd '.$location.' && '.$cmd."", $return_var);
   }
 
   public static function setUpBeforeClass()
-  {
+  { 
     self::$rootpath = dirname(__FILE__).'/field';
     
     //clean test field
@@ -38,6 +37,9 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
     self::_system_cd(self::$rootpath.'/repo/test.git', 'git add .');
     self::_system_cd(self::$rootpath.'/repo/test.git', 'git commit -m "initial commit"');
     self::_system_cd(self::$rootpath.'/repo/test.git', 'git checkout master');
+    
+    //mock logger
+    self::$logger = new Logger();
   }
   
   protected function setUp()
@@ -60,7 +62,7 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
   public function testDownload()
    {
      //prepare
-     $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'));
+     $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'), self::$logger);
      $c->init();
      $c->download();
      
@@ -72,7 +74,7 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
    public function testDownloadFromAnotherBranch()
    {
      //prepare
-     $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'));
+     $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'), self::$logger);
      $c->init();
      $c->download();
     
@@ -89,7 +91,7 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
     self::_system_cd(self::$rootpath.'/lib/test', 'git checkout number2');
     
     //leave the configuration
-    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'));
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'), self::$logger);
     $c->init();
 
     //test
@@ -102,7 +104,7 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
     self::_system('git clone file://'.self::$rootpath.'/repo/test.git '.self::$rootpath.'/lib/test');
     
     //change the configuration
-    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'));
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'), self::$logger);
     $c->init();
 
     //test
@@ -112,7 +114,7 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
   public function testDetectConfigurationChangesWhenTheFolderIsGone()
   {
     //prepare
-    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'));
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'number2'), self::$logger);
     $c->init();
     
     //test
@@ -122,7 +124,7 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
   public function testIgnoreIfUpdateNeededWhenNoChanges()
   {
     //run first test
-    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'));
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'), self::$logger);
     $c->init();
     $c->download();
     
@@ -133,7 +135,7 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
   public function testDetectUpdateIsNeededWhenRepositoryHasNewCommit()
   {
     //prepare
-    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'));
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'), self::$logger);
     $c->init();
     $c->download();
     
@@ -150,7 +152,7 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
   public function testNoUpdateNeededAfterUpdateDone()
   {
     //prepare
-    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'));
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'branch'=>'master'), self::$logger);
     $c->init();
     $c->download();
     
