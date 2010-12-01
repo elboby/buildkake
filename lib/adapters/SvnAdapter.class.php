@@ -10,6 +10,8 @@ class SvnAdapter extends Adapter
       
     if(isset($this->params['url']))     $this->url = $this->params['url'];
     if(isset($this->params['branch']))  $this->branch = $this->params['branch'];
+    
+    $this->url = $this->params['url'].'/'.$this->params['branch'];
   }
   
   protected function getRequiredParams()
@@ -19,8 +21,8 @@ class SvnAdapter extends Adapter
   
   public function download()
   {
-    $url = $this->params['url'].'/'.$this->params['branch'];
-    self::_system('svn checkout '.$url.' '.$this->path.'/'.$this->name);
+    $this->logger->info('SvnAdapter: downloading from '.$this->url);
+    self::_system('svn checkout '.$this->url.' '.$this->path.'/'.$this->name);
   }
   
   public function checkConfigChanged()
@@ -28,19 +30,20 @@ class SvnAdapter extends Adapter
     //check if svn repo or not
     if(!file_exists($this->path.'/'.$this->name.'/.svn'))
     {
+      $this->logger->info('SvnAdapter: config changed, not a svn repo');
       return true;
     }
     
-    //url from config
-    $url_config = $this->params['url'].'/'.$this->params['branch'];
     //url from file
     $out = self::_system('svn info '.$this->path.'/'.$this->name.' | grep "URL"');
     $url_file = substr($out, 5);
-    if($url_file != $url_config)
+    if($url_file != $this->url)
     { 
+      $this->logger->info('SvnAdapter: config changed, not the same url repo');
       return true;
     }
     
+    $this->logger->info('SvnAdapter: config NOT changed');
     return false;
   }
   
@@ -52,14 +55,17 @@ class SvnAdapter extends Adapter
     
     if($rev_head != $rev_wc)
     {
+      $this->logger->info('SvnAdapter: update needed, between '.$rev_wc.' and '.$rev_head);
       return true;
     }    
     
+    $this->logger->info('SvnAdapter: update NOT needed');
     return false;
   }
   
   public function update()
   {
+    $this->logger->info('SvnAdapter: updating');
     self::_system('svn update '.$this->path.'/'.$this->name);
   }
 }

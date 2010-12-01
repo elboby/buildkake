@@ -48,6 +48,7 @@ class GitAdapter extends Adapter
   
   public function update()
   {
+    $this->logger->info('GitAdapter: updating branch: '.$this->branch);
     self::_system_cd($this->branch_path, 'git checkout '.$this->branch);
     self::_system_cd($this->branch_path, 'git fetch');
     
@@ -65,6 +66,7 @@ class GitAdapter extends Adapter
     //check if it is a git working copy
     if( !file_exists($this->path.'/'.$this->name.'/.git') )
     {
+      $this->logger->info('GitAdapter: config changed, not a git repo');
       return true;
     }
     
@@ -73,6 +75,7 @@ class GitAdapter extends Adapter
     preg_match('/origin ?(.*) \(fetch\)/', $output, $matches);
     if( $this->url != trim($matches[1]) )
     {
+      $this->logger->info('GitAdapter: config changed, not the same repo url');
       return true;
     }
         
@@ -81,9 +84,11 @@ class GitAdapter extends Adapter
     preg_match('/\* ?(.*)/', $output, $matches);
     if( $this->branch != trim($matches[1]) )
     {
+      $this->logger->info('GitAdapter: config changed, not the same branch');
       return true;
     }
         
+    $this->logger->info('GitAdapter: config NOT changed');
     return false;
   }
   
@@ -101,9 +106,11 @@ class GitAdapter extends Adapter
     $output = self::_system_cd($this->branch_path, 'git diff HEAD..'.$origin.' --name-only');
     if($output!="")
     {
+      $this->logger->info('GitAdapter: update needed, late: '.$output);
       return true;
     }
     
+    $this->logger->info('GitAdapter: update NOT needed');
     return false;
   }
 }
