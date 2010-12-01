@@ -167,4 +167,24 @@ class GitAdapterTest extends PHPUnit_Framework_TestCase
     //test
     $this->assertEquals(false, $c->checkUpdateNeeded()); 
   }
+  
+  public function testDownloadTag()
+  {
+    //prepare
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git checkout master');
+    self::_system('echo 33 > '.self::$rootpath.'/repo/test.git/a');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git commit -am "commit before tag"');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git tag -a v1.0 -m "v1.0 tag"');
+    self::_system('echo 44 > '.self::$rootpath.'/repo/test.git/a');
+    self::_system_cd(self::$rootpath.'/repo/test.git', 'git commit -am "commit after tag"');
+    
+    //leave the configuration
+    $c = new GitAdapter('test', self::$rootpath.'/lib', array('url'=>'file://'.self::$rootpath.'/repo/test.git', 'tag'=>'v1.0'), self::$logger);
+    $c->init();
+    $c->download();
+
+    //test
+    $output = file_get_contents(self::$rootpath.'/lib/test/a');
+    $this->assertEquals(33, (integer)$output);
+  }
 }

@@ -3,18 +3,31 @@
 class GitAdapter extends Adapter
 {
   protected $url;
-  protected $branch, $tag;
+  protected $branch, $tag, $is_tag;
   
   public function __construct($name, $path, $params, $logger)
   {
     parent::__construct($name, $path, $params, $logger);
       
+    //mandatory: repo url
     if(isset($this->params['url']))     $this->url = $this->params['url'];
-    if(isset($this->params['branch']))  $this->branch = $this->params['branch'];
-    $this->branch_path = $this->path.'/'.$this->name;
     
-    //TODO handle git tags
-    //if(isset($this->params['tag']))     $this->tag = $this->params['tag'];
+    //mandatory: branch or tag 
+    $this->is_tag = false;
+    if(isset($this->params['branch']))
+    {
+      $this->branch = $this->params['branch'];
+    }
+    elseif(isset($this->params['tag']))
+    {
+      $this->branch = 'tag/'.$this->params['tag'];
+      $this->tag = $this->params['tag'];
+      $this->is_tag = true;
+    }
+    else
+    {
+      $this->branch = 'master';
+    }
   }
   
   protected function getRequiredParams()
@@ -30,27 +43,37 @@ class GitAdapter extends Adapter
   public function download()
   {
     $this->logger->info('GitAdapter: downloading url: '.$this->url);
-    self::_system('git clone '.$this->url.' '.$this->branch_path); 
+    self::_system('git clone '.$this->url.' '.$this->full_path); 
     
-    if( $this->branch != "master" )
+    if( $this->is_tag )
     {
-    	$this->logger->info('GitAdapter: tracking remote branch: '.$this->branch);
-      self::_system_cd($this->branch_path, 'git fetch origin');
-    	self::_system_cd($this->branch_path, 'git branch --track '.$this->branch.' origin/'.$this->branch);
+      $this->logger->info('GitAdapter: tracking a tag');
+      self::_system_cd($this->full_path, 'git fetch');
+      self::_system_cd($this->full_path, 'git fetch --tags');
+    	self::_system_cd($this->full_path, 'git checkout -b '.$this->branch.' '.$this->tag);
     }
+    else
+    {
+      if( $this->branch != "master" )
+      {
+      	$this->logger->info('GitAdapter: tracking remote branch: '.$this->branch);
+        self::_system_cd($this->full_path, 'git fetch origin');
+      	self::_system_cd($this->full_path, 'git branch --track '.$this->branch.' origin/'.$this->branch);
+      }
     
-    self::_system_cd($this->branch_path, 'git checkout '.$this->branch);
-  	self::_system_cd($this->branch_path, 'git pull');
+      self::_system_cd($this->full_path, 'git checkout '.$this->branch);
+    	self::_system_cd($this->full_path, 'git pull');
+    }
     	
-    self::_system_cd($this->branch_path, 'git submodule init');
-    self::_system_cd($this->branch_path, 'git submodule update');
+    self::_system_cd($this->full_path, 'git submodule init');
+    self::_system_cd($this->full_path, 'git submodule update');
   }
   
   public function update()
   {
     $this->logger->info('GitAdapter: updating branch: '.$this->branch);
-    self::_system_cd($this->branch_path, 'git checkout '.$this->branch);
-    self::_system_cd($this->branch_path, 'git fetch');
+    self::_system_cd($this->full_path, 'git checkout '.$this->branch);
+    self::_system_cd($this->full_path, 'git fetch');
     
     $origin = 'origin';
     if( $this->branch != "master")
@@ -58,7 +81,7 @@ class GitAdapter extends Adapter
       $origin .= '/'.$this->branch;
     }
     
-    self::_system_cd($this->branch_path, 'git merge '.$origin);
+    self::_system_cd($this->full_path, 'git merge '.$origin);
   }
   
   public function checkConfigChanged()
@@ -71,7 +94,7 @@ class GitAdapter extends Adapter
     }
     
     //check if url is the same
-    $output = self::_system_cd($this->branch_path, 'git remote -v | grep "(fetch)"');
+    $output = self::_system_cd($this->full_path, 'git remote -v | grep "(fetch)"');
     preg_match('/origin ?(.*) \(fetch\)/', $output, $matches);
     if( $this->url != trim($matches[1]) )
     {
@@ -80,7 +103,7 @@ class GitAdapter extends Adapter
     }
         
     //check if branch/tag is the same
-    $output = self::_system_cd($this->branch_path, 'git branch | grep "*"');
+    $output = self::_system_cd($this->full_path, 'git branch | grep "*"');
     preg_match('/\* ?(.*)/', $output, $matches);
     if( $this->branch != trim($matches[1]) )
     {
@@ -94,8 +117,8 @@ class GitAdapter extends Adapter
   
   public function checkUpdateNeeded()
   {
-    self::_system_cd($this->branch_path, 'git checkout '.$this->branch);
-    self::_system_cd($this->branch_path, 'git fetch');
+    self::_system_cd($this->full_path, 'git checkout '.$this->branch);
+    self::_system_cd($this->full_path, 'git fetch');
     
     $origin = 'origin';
     if( $this->branch != "master")
@@ -103,7 +126,7 @@ class GitAdapter extends Adapter
       $origin .= '/'.$this->branch;
     }
     
-    $output = self::_system_cd($this->branch_path, 'git diff HEAD..'.$origin.' --name-only');
+    $output = self::_system_cd($this->full_path, 'git diff HEAD..'.$origin.' --name-only');
     if($output!="")
     {
       $this->logger->info('GitAdapter: update needed, late: '.$output);

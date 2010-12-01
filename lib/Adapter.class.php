@@ -14,6 +14,8 @@ abstract class Adapter
     $this->path = $path;
     $this->params = $params;
     $this->logger = $logger;
+    
+    $this->full_path = $this->path.'/'.$this->name;
   }
   
   public function init()
@@ -36,12 +38,12 @@ abstract class Adapter
   
   public function checkIfPresent()
   {
-    return file_exists($this->path."/".$this->name);
+    return file_exists($this->full_path);
   }
   
   public function cleanUp()
   {
-    self::_system('rm -rf '.$this->path."/".$this->name);
+    self::_system('rm -rf '.$this->full_path);
   }
   
   abstract protected function getRequiredParams();
